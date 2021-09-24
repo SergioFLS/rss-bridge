@@ -24,6 +24,17 @@ class GeometryDashBridge extends BridgeAbstract {
 	}
 
 	public function collectData() {
+		$comments = $this->getAccountComments();
+
+		foreach ($comments as $comment) {
+			$item = array();
+			$item['title'] = base64_decode($comment[2]);
+			$this->items[] = $item;
+		}
+	}
+
+	public function getAccountComments() {
+		// send request to servers
 		$responseData = getContents(
 			$this->getURI() . 'getGJAccountComments20.php',
 			array('Accept-Encoding: '),
@@ -34,16 +45,21 @@ class GeometryDashBridge extends BridgeAbstract {
 			)
 		);
 
-		//$responseData = getInput('server');
-
+		// parse the data
 		$rawComments = explode('#', $responseData)[0];
+		$comments = array(); // initialize output
 		foreach (explode('|', $rawComments) as $singleRawComment) {
-			$item = array();
-			$encodedCommentText = explode('~', $singleRawComment)[1];
-			$item['title'] = base64_decode($encodedCommentText);
-			$item['uid'] = explode('~', $singleRawComment)[7];
+			$singleUnencodedComment = explode('~', $singleRawComment);
 
-			$this->items[] = $item;
+			// and turn it into a php array
+			$singleComment = array();
+			for ($i = 0; $i < count($singleUnencodedComment); $i += 2) {
+				$singleComment[ $singleUnencodedComment[$i] ] = $singleUnencodedComment[$i+1];
+			}
+
+			$comments[] = $singleComment;
 		}
+
+		return $comments;
 	}
 }
